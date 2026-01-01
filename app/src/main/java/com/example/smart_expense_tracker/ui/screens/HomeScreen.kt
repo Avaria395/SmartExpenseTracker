@@ -43,6 +43,7 @@ fun HomeScreen(
     onNavigateToAssets: () -> Unit,
     onNavigateToStatistics: () -> Unit,
     onNavigateToAi: () -> Unit,
+    onNavigateToDate: (Long) -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
     var showAddTransactionSheet by remember { mutableStateOf(false) }
@@ -70,7 +71,7 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item { TodayInfoCard(todayStats = todayStats) }
+            item { TodayInfoCard(todayStats = todayStats, onDateSelected = onNavigateToDate) }
             item {
                 MonthlySummaryCard(
                     todayStats = todayStats,
@@ -213,12 +214,14 @@ private fun BudgetEditDialog(
 }
 
 @Composable
-private fun TodayInfoCard(todayStats: TodayStats?) {
+private fun TodayInfoCard(todayStats: TodayStats?, onDateSelected: (Long) -> Unit) {
     val dateFormat = SimpleDateFormat("M月d日 (E)", Locale.CHINA)
     val todayDate = "今天 ${dateFormat.format(Calendar.getInstance().time)}"
     val expense = todayStats?.expense ?: 0L
     val income = todayStats?.income ?: 0L
     val nf = NumberFormat.getCurrencyInstance(Locale.CHINA)
+    var showDatePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
         Row(
@@ -241,13 +244,30 @@ private fun TodayInfoCard(todayStats: TodayStats?) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
             }
-            Icon(
-                Icons.Default.CalendarToday,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(32.dp),
-            )
+            IconButton(onClick = { showDatePicker = true }) {
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = "选择日期",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(32.dp),
+                )
+            }
         }
+    }
+
+    if (showDatePicker) {
+        val cal = Calendar.getInstance()
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                cal.set(year, month, dayOfMonth)
+                onDateSelected(cal.timeInMillis)
+                showDatePicker = false
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 }
 
@@ -299,7 +319,7 @@ private fun MonthlySummaryCard(
                         ) { Text("编辑", style = MaterialTheme.typography.bodySmall) }
                     }
                 }
-                LinearProgressIndicator(budgetUsage.coerceIn(0f, 1f), Modifier.fillMaxWidth())
+                LinearProgressIndicator(progress = { budgetUsage.coerceIn(0f, 1f) }, Modifier.fillMaxWidth())
                 Text(
                     if (monthlyBudget > 0L) {
                         val percent = (budgetUsage * 100).toInt().coerceIn(0, 100)

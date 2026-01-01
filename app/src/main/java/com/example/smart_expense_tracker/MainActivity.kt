@@ -11,10 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.smart_expense_tracker.ui.screens.AssetsScreen
+import com.example.smart_expense_tracker.ui.screens.DateTransactionScreen
 import com.example.smart_expense_tracker.ui.screens.HomeScreen
 import com.example.smart_expense_tracker.ui.screens.StatisticsScreen
 import com.example.smart_expense_tracker.ui.screens.AiScreen
@@ -50,7 +53,8 @@ fun SmartExpenseApp(
                 HomeScreen(
                     onNavigateToAssets = { navController.navigate("assets") },
                     onNavigateToStatistics = { navController.navigate("statistics") },
-                    onNavigateToAi = { navController.navigate("ai") }
+                    onNavigateToAi = { navController.navigate("ai") },
+                    onNavigateToDate = { date -> navController.navigate("date_transaction/$date") }
                 )
             }
             composable("assets") {
@@ -65,6 +69,16 @@ fun SmartExpenseApp(
             }
             composable("ai") {
                 AiScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                "date_transaction/{date}",
+                arguments = listOf(navArgument("date") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val date = backStackEntry.arguments?.getLong("date") ?: 0L
+                DateTransactionScreen(
+                    date = date,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
