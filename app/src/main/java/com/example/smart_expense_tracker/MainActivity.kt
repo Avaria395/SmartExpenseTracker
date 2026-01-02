@@ -21,6 +21,8 @@ import com.example.smart_expense_tracker.ui.screens.DateTransactionScreen
 import com.example.smart_expense_tracker.ui.screens.HomeScreen
 import com.example.smart_expense_tracker.ui.screens.StatisticsScreen
 import com.example.smart_expense_tracker.ui.screens.AiScreen
+import com.example.smart_expense_tracker.ui.screens.MonthlyStatisticsScreen
+import com.example.smart_expense_tracker.ui.screens.YearlyStatisticsScreen
 import com.example.smart_expense_tracker.ui.theme.SmartExpenseTrackerTheme
 
 class MainActivity : ComponentActivity() {
@@ -64,7 +66,9 @@ fun SmartExpenseApp(
             }
             composable("statistics") {
                 StatisticsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMonthly = { year, month -> navController.navigate("monthly_statistics/$year/$month") },
+                    onNavigateToYearly = { year -> navController.navigate("yearly_statistics/$year") }
                 )
             }
             composable("ai") {
@@ -80,6 +84,43 @@ fun SmartExpenseApp(
                 DateTransactionScreen(
                     date = date,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                "monthly_statistics/{year}/{month}",
+                arguments = listOf(
+                    navArgument("year") { type = NavType.IntType },
+                    navArgument("month") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val year = backStackEntry.arguments?.getInt("year") ?: 0
+                val month = backStackEntry.arguments?.getInt("month") ?: 0
+                MonthlyStatisticsScreen(
+                    year = year,
+                    month = month,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMonthly = { newYear, newMonth ->
+                        navController.navigate("monthly_statistics/$newYear/$newMonth") {
+                            popUpTo("monthly_statistics/{year}/{month}") { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(
+                "yearly_statistics/{year}",
+                arguments = listOf(
+                    navArgument("year") { type = NavType.IntType }
+                )
+            ) { backStackEntry ->
+                val year = backStackEntry.arguments?.getInt("year") ?: 0
+                YearlyStatisticsScreen(
+                    year = year,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToYearly = { newYear ->
+                        navController.navigate("yearly_statistics/$newYear") {
+                            popUpTo("yearly_statistics/{year}") { inclusive = true }
+                        }
+                    }
                 )
             }
         }

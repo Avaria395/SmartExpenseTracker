@@ -37,4 +37,7 @@ public interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE book_id = :bookId AND record_time BETWEEN :startTime AND :endTime ORDER BY record_time DESC")
     List<TransactionEntity> getTransactionsByPeriodAndBook(long startTime, long endTime, int bookId);
+
+    @Query("SELECT * FROM transactions WHERE record_time BETWEEN :startTime AND :endTime")
+    Flow<List<TransactionEntity>> getTransactionsBetween(long startTime, long endTime);
 }

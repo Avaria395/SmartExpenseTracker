@@ -44,8 +44,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "smart_expense.db")
-                            // 实际开发中建议处理迁移，或者在开发阶段使用 .fallbackToDestructiveMigration()
-                            .fallbackToDestructiveMigration() 
+                            .fallbackToDestructiveMigration()
                             .build();
                 }
             }
