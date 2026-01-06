@@ -44,6 +44,7 @@ fun HomeScreen(
     onNavigateToStatistics: () -> Unit,
     onNavigateToAi: () -> Unit,
     onNavigateToDate: (Long) -> Unit,
+    showAddTransactionInitially: Boolean = false,
     viewModel: HomeViewModel = viewModel(),
 ) {
     var showAddTransactionSheet by remember { mutableStateOf(false) }
@@ -59,6 +60,12 @@ fun HomeScreen(
     val transactions by viewModel.transactions.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+
+    LaunchedEffect(showAddTransactionInitially) {
+        if (showAddTransactionInitially) {
+            showAddTransactionSheet = true
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },

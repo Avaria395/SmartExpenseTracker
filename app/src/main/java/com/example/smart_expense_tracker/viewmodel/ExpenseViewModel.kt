@@ -1,23 +1,25 @@
 package com.example.smart_expense_tracker.viewmodel
 
 import android.app.Application
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smart_expense_tracker.SummaryWidgetProvider
 import com.example.smart_expense_tracker.database.entity.AccountEntity
+import com.example.smart_expense_tracker.database.entity.BookEntity
 import com.example.smart_expense_tracker.database.entity.CategoryEntity
 import com.example.smart_expense_tracker.database.entity.TransactionEntity
-import com.example.smart_expense_tracker.database.entity.BookEntity
-import com.example.smart_expense_tracker.network.DeepSeekApiService
+import com.example.smart_expense_tracker.model.AccountItem
 import com.example.smart_expense_tracker.repository.ExpenseRepository
 import com.example.smart_expense_tracker.repository.TodayStats
-import com.example.smart_expense_tracker.database.entity.BudgetEntity
-import com.example.smart_expense_tracker.model.AccountItem
-import com.example.smart_expense_tracker.repository.MonthlyStats
-import kotlinx.coroutines.flow.*
+import com.example.smart_expense_tracker.util.Constants
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = ExpenseRepository.getInstance(application)
@@ -56,7 +58,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadData()
     }
 
-    private fun loadData() {
+    fun loadData() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -86,33 +88,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun loadAccounts() {
-        val accounts = repository.getAllAccounts()
-        _accounts.value = accounts
+        _accounts.value = repository.getAllAccounts()
     }
 
     private suspend fun loadCategories() {
-        val cats = repository.getAllCategories()
-        _categories.value = cats
+        _categories.value = repository.getAllCategories()
     }
 
     private suspend fun loadBooks() {
-        val books = repository.getAllBooks()
-        _books.value = books
+        _books.value = repository.getAllBooks()
     }
 
     fun addTransaction(
-        bookId: Int,
-        categoryId: Int,
-        accountId: Int,
-        amount: Long,
-        type: Int, // 0: 支出, 1: 收入, 2: 转账
-        remark: String,
-        transactionDate: Long? = null // 可选的交易日期
+        bookId: Int, categoryId: Int, accountId: Int, amount: Long, type: Int, remark: String, transactionDate: Long? = null
     ) {
         viewModelScope.launch {
             try {
                 val transaction = TransactionEntity().apply {
-                    this.id = 0
                     this.bookId = bookId
                     this.categoryId = categoryId
                     this.accountId = accountId
@@ -122,25 +114,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     this.remark = remark
                 }
                 repository.insertTransaction(transaction)
-                loadTodayStats()
-                loadRecentTransactions()
-                loadAccounts() 
-                loadBooks() 
-                loadBudgetData() 
+                loadData()
+                notifyWidgetsDataChanged()
             } catch (e: Exception) {
                 _error.value = "添加交易失败: ${e.message}"
             }
         }
     }
 
-
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             try {
                 repository.deleteTransaction(transaction)
-                loadTodayStats()
-                loadRecentTransactions()
-                loadBudgetData()
+                loadData()
+                notifyWidgetsDataChanged()
             } catch (e: Exception) {
                 _error.value = "删除交易失败: ${e.message}"
             }
@@ -151,39 +138,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) + 1
-        
         _monthlyBudget.value = repository.getTotalBudgetByMonth(year, month)
-        _remainingBudget.value = repository.getRemainingBudgetByMonth(year, month)
-        
-        val cal = Calendar.getInstance().apply {
-            set(Calendar.YEAR, year)
-            set(Calendar.MONTH, month - 1)
-            set(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val startOfMonth = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        val endOfMonth = cal.timeInMillis
-
-        val totalBudget = _monthlyBudget.value
-        val totalExpense = repository.getTotalExpense(startOfMonth, endOfMonth)
-
-        _budgetUsage.value = if (totalBudget > 0) totalExpense.toFloat() / totalBudget else 0f
-    }
-
-    fun refreshData() {
-        loadData()
-    }
-
-    fun clearError() {
-        _error.value = null
     }
 
     fun addBudget(budgetAmount: Long) {
@@ -192,17 +147,26 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val calendar = Calendar.getInstance()
                 val year = calendar.get(Calendar.YEAR)
                 val month = calendar.get(Calendar.MONTH) + 1
-                
                 val existing = repository.getBudgetByCategoryAndMonth("总预算", year, month)
                 val existingSpent = existing?.spentAmount ?: 0L
-
                 repository.setTotalBudgetForMonth(year, month, budgetAmount, existingSpent)
-
                 loadBudgetData()
+                notifyWidgetsDataChanged()
             } catch (e: Exception) {
                 _error.value = "添加预算失败: ${e.message}"
             }
         }
+    }
+
+    private fun notifyWidgetsDataChanged() {
+        val intent = Intent(getApplication(), SummaryWidgetProvider::class.java).apply {
+            action = Constants.ACTION_DATA_UPDATED
+        }
+        getApplication<Application>().sendBroadcast(intent)
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }
 
@@ -228,10 +192,10 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        loadAssetOverview()
+        refreshAssetOverview()
     }
 
-    private fun loadAssetOverview() {
+    fun refreshAssetOverview() {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
@@ -252,13 +216,12 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 val account = AccountEntity().apply {
-                    this.id = 0
                     this.name = name
                     this.balance = balance
                     this.color = getDefaultColorForCategory(category)
                 }
                 repository.insertAccount(account)
-                loadAssetOverview()
+                refreshAssetOverview()
             } catch (e: Exception) {
                 _error.value = "添加账户失败: ${e.message}"
             }
@@ -277,11 +240,11 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun deleteAccount(accountId: Long) {
+    fun deleteAccountById(accountId: Int) {
         viewModelScope.launch {
             try {
-                repository.deleteAccountById(accountId.toInt())
-                loadAssetOverview()
+                repository.deleteAccountById(accountId)
+                refreshAssetOverview()
             } catch (e: Exception) {
                 _error.value = "删除账户失败: ${e.message}"
             }
@@ -292,15 +255,11 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 repository.setAccountBalance(accountId.toInt(), newBalance)
-                loadAssetOverview()
+                refreshAssetOverview()
             } catch (e: Exception) {
                 _error.value = "更新账户余额失败: ${e.message}"
             }
         }
-    }
-
-    fun refreshAssetOverview() {
-        loadAssetOverview()
     }
 
     fun clearError() {

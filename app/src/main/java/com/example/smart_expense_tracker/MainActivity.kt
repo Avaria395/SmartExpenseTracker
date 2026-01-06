@@ -24,18 +24,20 @@ import com.example.smart_expense_tracker.ui.screens.AiScreen
 import com.example.smart_expense_tracker.ui.screens.MonthlyStatisticsScreen
 import com.example.smart_expense_tracker.ui.screens.YearlyStatisticsScreen
 import com.example.smart_expense_tracker.ui.theme.SmartExpenseTrackerTheme
+import com.example.smart_expense_tracker.util.Constants
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val action = intent.action
         setContent {
             SmartExpenseTrackerTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SmartExpenseApp()
+                    SmartExpenseApp(action = action)
                 }
             }
         }
@@ -44,7 +46,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SmartExpenseApp(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    action: String? = null
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -56,7 +59,8 @@ fun SmartExpenseApp(
                     onNavigateToAssets = { navController.navigate("assets") },
                     onNavigateToStatistics = { navController.navigate("statistics") },
                     onNavigateToAi = { navController.navigate("ai") },
-                    onNavigateToDate = { date -> navController.navigate("date_transaction/$date") }
+                    onNavigateToDate = { date -> navController.navigate("date_transaction/$date") },
+                    showAddTransactionInitially = action == Constants.ACTION_ADD_TRANSACTION
                 )
             }
             composable("assets") {

@@ -73,7 +73,7 @@ fun AssetsScreen(
                     item { EmptyStateCard { showAddAccountDialog = true } }
                 } else {
                     items(accounts) { account ->
-                        AccountItemCard(account, { viewModel.deleteAccount(account.id) }) { accountToEdit = account }
+                        AccountItemCard(account, { viewModel.deleteAccountById(account.id.toInt()) }) { accountToEdit = account }
                     }
                 }
             }
