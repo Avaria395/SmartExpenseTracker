@@ -13,6 +13,7 @@ import com.example.smart_expense_tracker.repository.TodayStats
 import com.example.smart_expense_tracker.database.entity.BudgetEntity
 import com.example.smart_expense_tracker.model.AccountItem
 import com.example.smart_expense_tracker.repository.MonthlyStats
+import com.example.smart_expense_tracker.widget.BudgetDisplayWidgetProvider
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -24,6 +25,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _todayStats = MutableStateFlow<TodayStats?>(null)
     val todayStats: StateFlow<TodayStats?> = _todayStats.asStateFlow()
+
+    private val _monthlyExpense = MutableStateFlow(0L)
+    val monthlyExpense: StateFlow<Long> = _monthlyExpense.asStateFlow()
+
+    private val _monthlyIncome = MutableStateFlow(0L)
+    val monthlyIncome: StateFlow<Long> = _monthlyIncome.asStateFlow()
 
     private val _transactions = MutableStateFlow<List<TransactionEntity>>(emptyList())
     val transactions: StateFlow<List<TransactionEntity>> = _transactions.asStateFlow()
@@ -126,7 +133,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 loadRecentTransactions()
                 loadAccounts() 
                 loadBooks() 
-                loadBudgetData() 
+                loadBudgetData()
+                
+                // 触发桌面小部件更新
+                BudgetDisplayWidgetProvider.triggerUpdate(getApplication())
             } catch (e: Exception) {
                 _error.value = "添加交易失败: ${e.message}"
             }
@@ -141,6 +151,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 loadTodayStats()
                 loadRecentTransactions()
                 loadBudgetData()
+                loadAccounts()
+                
+                // 触发桌面小部件更新
+                BudgetDisplayWidgetProvider.triggerUpdate(getApplication())
             } catch (e: Exception) {
                 _error.value = "删除交易失败: ${e.message}"
             }
@@ -153,7 +167,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val month = calendar.get(Calendar.MONTH) + 1
         
         _monthlyBudget.value = repository.getTotalBudgetByMonth(year, month)
-        _remainingBudget.value = repository.getRemainingBudgetByMonth(year, month)
         
         val cal = Calendar.getInstance().apply {
             set(Calendar.YEAR, year)
@@ -174,7 +187,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         val totalBudget = _monthlyBudget.value
         val totalExpense = repository.getTotalExpense(startOfMonth, endOfMonth)
+        val totalIncome = repository.getTotalIncome(startOfMonth, endOfMonth)
 
+        _monthlyExpense.value = totalExpense
+        _monthlyIncome.value = totalIncome
+        _remainingBudget.value = if (totalBudget > 0) totalBudget - totalExpense else 0L
         _budgetUsage.value = if (totalBudget > 0) totalExpense.toFloat() / totalBudget else 0f
     }
 
@@ -199,6 +216,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 repository.setTotalBudgetForMonth(year, month, budgetAmount, existingSpent)
 
                 loadBudgetData()
+                
+                // 触发桌面小部件更新
+                BudgetDisplayWidgetProvider.triggerUpdate(getApplication())
             } catch (e: Exception) {
                 _error.value = "添加预算失败: ${e.message}"
             }
@@ -259,6 +279,9 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 repository.insertAccount(account)
                 loadAssetOverview()
+                
+                // 触发小部件刷新（虽然该小部件目前不直接展示账户余额，但保持数据同步是好习惯）
+                BudgetDisplayWidgetProvider.triggerUpdate(getApplication())
             } catch (e: Exception) {
                 _error.value = "添加账户失败: ${e.message}"
             }
@@ -293,6 +316,8 @@ class AssetsViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 repository.setAccountBalance(accountId.toInt(), newBalance)
                 loadAssetOverview()
+                
+                BudgetDisplayWidgetProvider.triggerUpdate(getApplication())
             } catch (e: Exception) {
                 _error.value = "更新账户余额失败: ${e.message}"
             }

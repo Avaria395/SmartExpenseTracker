@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 蓝色填充部分，左侧圆角，右侧直角或小圆角以配合随动效果 -->
+    <corners 
+        android:topLeftRadius="18dp" 
+        android:bottomLeftRadius="18dp"
+        android:topRightRadius="4dp"
+        android:bottomRightRadius="4dp" />
+    <solid android:color="#2196F3" />
+</shape>

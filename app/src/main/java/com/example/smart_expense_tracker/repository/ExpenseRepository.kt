@@ -155,7 +155,14 @@ class ExpenseRepository(context: Context) {
     }
 
     suspend fun deleteTransaction(transaction: TransactionEntity) = withContext(Dispatchers.IO) {
-        // 如果是支出，调整预算的 spentAmount（按交易发生时间的年月）
+        // 1. 回滚账户余额
+        if (transaction.accountId != null && transaction.type != 2) {
+            // 如果是支出(0)，删除后应加回金额；如果是收入(1)，删除后应减去金额
+            val changeAmount = if (transaction.type == 0) transaction.amount else -transaction.amount
+            changeAccountBalance(transaction.accountId, changeAmount)
+        }
+
+        // 2. 如果是支出，调整预算的 spentAmount（按交易发生时间的年月）
         if (transaction.type == 0 && transaction.categoryId != null) {
             try {
                 val category = categoryDao.getCategoryById(transaction.categoryId!!)
@@ -185,16 +192,17 @@ class ExpenseRepository(context: Context) {
             }
         }
 
+        // 3. 执行物理删除
         transactionDao.delete(transaction)
     }
 
     // 获取指定时间范围的交易统计
     suspend fun getTotalExpense(startTime: Long, endTime: Long): Long = withContext(Dispatchers.IO) {
-        transactionDao.getTotalExpense(startTime, endTime)
+        transactionDao.getTotalExpense(startTime, endTime) ?: 0L
     }
 
     suspend fun getTotalIncome(startTime: Long, endTime: Long): Long = withContext(Dispatchers.IO) {
-        transactionDao.getTotalIncome(startTime, endTime)
+        transactionDao.getTotalIncome(startTime, endTime) ?: 0L
     }
 
     suspend fun getTransactionsByPeriod(

@@ -1,6 +1,8 @@
 package com.example.smart_expense_tracker
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -26,25 +33,49 @@ import com.example.smart_expense_tracker.ui.screens.YearlyStatisticsScreen
 import com.example.smart_expense_tracker.ui.theme.SmartExpenseTrackerTheme
 
 class MainActivity : ComponentActivity() {
+    
+    private var showAddTransactionState = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        handleIntent(intent)
+        
         setContent {
             SmartExpenseTrackerTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SmartExpenseApp()
+                    val showAdd by remember { showAddTransactionState }
+                    SmartExpenseApp(
+                        showAddTransaction = showAdd,
+                        onAddConsumed = { showAddTransactionState.value = false }
+                    )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == "com.example.smart_expense_tracker.ACTION_QUICK_ADD") {
+            showAddTransactionState.value = true
         }
     }
 }
 
 @Composable
 fun SmartExpenseApp(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    showAddTransaction: Boolean = false,
+    onAddConsumed: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -56,8 +87,15 @@ fun SmartExpenseApp(
                     onNavigateToAssets = { navController.navigate("assets") },
                     onNavigateToStatistics = { navController.navigate("statistics") },
                     onNavigateToAi = { navController.navigate("ai") },
-                    onNavigateToDate = { date -> navController.navigate("date_transaction/$date") }
+                    onNavigateToDate = { date -> navController.navigate("date_transaction/$date") },
+                    initialShowAddDialog = showAddTransaction
                 )
+                
+                if (showAddTransaction) {
+                    LaunchedEffect(Unit) {
+                        onAddConsumed()
+                    }
+                }
             }
             composable("assets") {
                 AssetsScreen(

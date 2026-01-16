@@ -2,27 +2,14 @@ package com.example.smart_expense_tracker.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +19,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.smart_expense_tracker.database.entity.CategoryEntity
 import com.example.smart_expense_tracker.repository.MonthlyStats
+
+// 定义一组鲜艳、对比度高的颜色，用于饼图
+private val VibrantColors = listOf(
+    Color(0xFFFF5252), // 鲜红
+    Color(0xFF2979FF), // 亮蓝
+    Color(0xFF00E676), // 翠绿
+    Color(0xFFFF9100), // 活力橙
+    Color(0xFFD500F9), // 魅惑紫
+    Color(0xFF00B8D4), // 宝石蓝
+    Color(0xFFFFD600), // 柠檬黄
+    Color(0xFF37474F), // 沉稳灰
+    Color(0xFFF50057), // 玫瑰红
+    Color(0xFF651FFF)  // 深紫色
+)
 
 @Composable
 fun ExpenseOverviewCard(monthlyStats: MonthlyStats?) {
@@ -63,13 +64,15 @@ fun ExpenseSummaryItem(label: String, value: String, color: Color, icon: ImageVe
 
 @Composable
 fun CategoryPieChartCard(categoryData: Map<CategoryEntity, Long>) {
-    fun nameToColor(name: String): Color {
-        val hash = name.hashCode()
-        return Color((0xFF shl 24) or (hash and 0xFFFFFF))
+    // 使用预定义的鲜艳颜色映射数据
+    val pieChartData = categoryData.entries.sortedByDescending { it.value }.mapIndexed { index, entry ->
+        PieChartData(
+            label = entry.key.name ?: "未知",
+            value = entry.value.toDouble() / 100.0,
+            color = VibrantColors[index % VibrantColors.size]
+        )
     }
-    val pieChartData = categoryData.map {
-        PieChartData(it.key.name ?: "", it.value.toDouble() / 100.0, nameToColor(it.key.name ?: ""))
-    }
+
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("分类占比", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -88,21 +91,20 @@ fun CategoryDetailsCard(categoryData: Map<CategoryEntity, Long>) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("分类详情", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            categoryData.entries.sortedByDescending { it.value }.forEach { (category, amount) ->
-                CategoryDetailItem(category.name ?: "", amount / 100.0, amount.toFloat() / total.toFloat())
+            categoryData.entries.sortedByDescending { it.value }.forEachIndexed { index, entry ->
+                CategoryDetailItem(
+                    category = entry.key.name ?: "",
+                    amount = entry.value / 100.0,
+                    percentage = entry.value.toFloat() / total.toFloat(),
+                    color = VibrantColors[index % VibrantColors.size]
+                )
             }
         }
     }
 }
 
 @Composable
-fun CategoryDetailItem(category: String, amount: Double, percentage: Float) {
-    val color = when (category) {
-        "餐饮" -> Color(0xFFFF7043)
-        "购物" -> Color(0xFF42A5F5)
-        "交通" -> Color(0xFF66BB6A)
-        else -> Color(0xFFAB47BC)
-    }
+fun CategoryDetailItem(category: String, amount: Double, percentage: Float, color: Color) {
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.size(16.dp).background(color, CircleShape))
