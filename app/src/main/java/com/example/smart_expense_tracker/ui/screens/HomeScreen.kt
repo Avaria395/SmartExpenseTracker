@@ -111,9 +111,11 @@ fun HomeScreen(
             } else {
                 items(transactions) { transaction ->
                     val cat = categories.find { it.id == transaction.categoryId }
+                    val acc = accounts.find { it.id == transaction.accountId }
                     TransactionItemCard(
                         transaction = transaction,
                         category = cat,
+                        account = acc,
                         onDelete = { viewModel.deleteTransaction(transaction) },
                     )
                 }
@@ -415,6 +417,7 @@ private fun QuickActionButton(
 private fun TransactionItemCard(
     transaction: com.example.smart_expense_tracker.database.entity.TransactionEntity,
     category: CategoryEntity?,
+    account: AccountEntity?,
     onDelete: () -> Unit,
 ) {
     val nf = NumberFormat.getCurrencyInstance(Locale.CHINA)
@@ -427,31 +430,69 @@ private fun TransactionItemCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(), 
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 左侧图标
             Box(
                 Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
-                    .background(color),
+                    .background(color.copy(alpha = 0.9f)),
                 Alignment.Center,
-            ) { Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp)) }
-            Spacer(Modifier.width(12.dp))
+            ) { Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp)) }
+            
+            Spacer(Modifier.width(16.dp))
+            
+            // 中间信息
             Column(Modifier.weight(1f)) {
-                Text(category?.name ?: "未知", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                if (!transaction.remark.isNullOrEmpty()) {
-                    Text(transaction.remark, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                }
-                Text(dateFormat.format(Date(transaction.recordTime)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = (if (transaction.type == 0) "-" else "+") + amountText,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = amountColor,
+                    text = category?.name ?: "未知", 
+                    style = MaterialTheme.typography.titleMedium, 
+                    fontWeight = FontWeight.Bold
                 )
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f))
+                if (!transaction.remark.isNullOrEmpty()) {
+                    Text(
+                        text = transaction.remark, 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        maxLines = 1
+                    )
+                }
+                Text(
+                    text = dateFormat.format(Date(transaction.recordTime)), 
+                    style = MaterialTheme.typography.labelSmall, 
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                )
+            }
+            
+            // 右侧金额与账户
+            Column(horizontalAlignment = Alignment.End) {
+                // 账户名放到金额上方
+                Text(
+                    text = account?.name ?: "未知账户",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = (if (transaction.type == 0) "-" else "+") + amountText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = amountColor,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Default.Delete, 
+                            "删除", 
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
