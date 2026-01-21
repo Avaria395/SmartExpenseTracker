@@ -35,6 +35,7 @@ import com.example.smart_expense_tracker.ui.theme.SmartExpenseTrackerTheme
 class MainActivity : ComponentActivity() {
     
     private var showAddTransactionState = mutableStateOf(false)
+    private var showStatisticsState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,9 +50,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val showAdd by remember { showAddTransactionState }
+                    val showStats by remember { showStatisticsState }
                     SmartExpenseApp(
                         showAddTransaction = showAdd,
-                        onAddConsumed = { showAddTransactionState.value = false }
+                        showStatistics = showStats,
+                        onAddConsumed = { showAddTransactionState.value = false },
+                        onStatsConsumed = { showStatisticsState.value = false }
                     )
                 }
             }
@@ -65,8 +69,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.action == "com.example.smart_expense_tracker.ACTION_QUICK_ADD") {
-            showAddTransactionState.value = true
+        when (intent?.action) {
+            "com.example.smart_expense_tracker.ACTION_QUICK_ADD" -> {
+                showAddTransactionState.value = true
+            }
+            "com.example.smart_expense_tracker.ACTION_VIEW_STATISTICS" -> {
+                showStatisticsState.value = true
+            }
         }
     }
 }
@@ -75,7 +84,9 @@ class MainActivity : ComponentActivity() {
 fun SmartExpenseApp(
     navController: NavHostController = rememberNavController(),
     showAddTransaction: Boolean = false,
-    onAddConsumed: () -> Unit = {}
+    showStatistics: Boolean = false,
+    onAddConsumed: () -> Unit = {},
+    onStatsConsumed: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -94,6 +105,13 @@ fun SmartExpenseApp(
                 if (showAddTransaction) {
                     LaunchedEffect(Unit) {
                         onAddConsumed()
+                    }
+                }
+                
+                if (showStatistics) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate("statistics")
+                        onStatsConsumed()
                     }
                 }
             }

@@ -202,4 +202,16 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 右上角切换按钮 -->
+    <ImageView
+        android:id="@+id/btn_widget_switch"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="4dp"
+        android:padding="8dp"
+        android:src="@android:drawable/ic_menu_rotate"
+        android:alpha="0.6"
+        android:contentDescription="切换视图" />
+
 </FrameLayout>

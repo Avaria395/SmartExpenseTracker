@@ -69,8 +69,9 @@ fun StatisticsScreen(
                 item { PeriodTitle(selectedPeriod, monthlyStats) }
                 item { ExpenseOverviewCard(monthlyStats) }
                 item { CategoryPieChartCard(categoryData) }
-                item { ExpenseTrendCard(selectedPeriod, trendData, dataIsInCents = false) } // Main screen data is in yuan
+                // 将分类详情放到分类占比下方
                 item { CategoryDetailsCard(categoryData) }
+                item { ExpenseTrendCard(selectedPeriod, trendData, dataIsInCents = false) } // Main screen data is in yuan
             }
         }
     }
